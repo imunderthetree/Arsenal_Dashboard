@@ -626,6 +626,18 @@ body::before {
     animation-fill-mode: both;
 }
 
+.attendance-full-width {
+    width: 100%;
+}
+
+.attendance-full-width .chart-card {
+    width: 100%;
+}
+
+.attendance-large {
+    height: 500px;
+}
+
 .comparison-header {
     display: flex;
     justify-content: space-between;
@@ -966,19 +978,6 @@ body::before {
                         <div id="chartdiv_result_pie" class="chart-box"></div>
                     </div>
                 </div>
-
-                <div class="chart-card">
-                    <div class="card-header">
-                        <div class="card-header-content">
-                            <h2>Attendance Over Matches</h2>
-                            <div class="card-subtitle">Attendance trend by tour/date</div>
-                        </div>
-                        <div class="chart-badge">Trend</div>
-                    </div>
-                    <div class="chart-wrapper">
-                        <div id="chartdiv_attendance_line" class="chart-box"></div>
-                    </div>
-                </div>
                 
                 <div class="chart-card">
                     <div class="card-header">
@@ -1021,8 +1020,23 @@ body::before {
             </div>
         </section>
 
-        <!-- Season Comparison Section (New from Notebook) -->
-        <section class="season-comparison">
+        <!-- Attendance Section - Full Width -->
+        <section class="chart-section">
+            <div class="attendance-full-width">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-header-content">
+                            <h2>Attendance Over Matches</h2>
+                            <div class="card-subtitle">Attendance trend by tour/date across all matches</div>
+                        </div>
+                        <div class="chart-badge">Trend</div>
+                    </div>
+                    <div class="chart-wrapper attendance-large">
+                        <div id="chartdiv_attendance_line" class="chart-box"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
             <div class="comparison-header">
                 <div>
                     <h2>Season Win/Loss Timeline</h2>
