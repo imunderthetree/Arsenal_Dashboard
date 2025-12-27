@@ -3,10 +3,11 @@
 
 // Global variables
 let currentSeason = 'all';
+let currentHomeFilter = 'all';
 let matchesChart, seasonsChart;
 let playersChart;
 let winsChart, attendanceChart, opponentsChart, scoresChart, resultPieChart;
-let playersBarChart, goalsPerMatchChart;
+let playersBarChart, goalsPerMatchChart, salariesBarChart;
 
 // Arsenal Brand Colors
 const ARSENAL_COLORS = {
@@ -17,7 +18,8 @@ const ARSENAL_COLORS = {
     darkBlue: '#023474',
     gold: '#9C824A',
     white: '#FFFFFF',
-    red: '#EF0107'
+    red: '#EF0107',
+    purple: '#8B5CF6'  // purple
 };
 
 // debug: confirm the color map is set when the file loads
@@ -43,30 +45,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Main data loading function
 async function loadAllData() {
-    console.log(`Loading data for season: ${currentSeason}`);
+    console.log(`Loading data for season: ${currentSeason}, home filter: ${currentHomeFilter}`);
     
     try {
 
-        // Load matches, stats, players and wins-by-season in parallel
-        const [matches, stats, players, winsBySeason] = await Promise.all([
+        // Load matches, stats, players, wins-by-season, and rank data in parallel
+        const [matches, stats, players, winsBySeason, rankData] = await Promise.all([
             fetch(`/api/matches/${currentSeason}`).then(r => r.json()),
             fetch(`/api/stats/${currentSeason}`).then(r => r.json()),
             fetch(`/api/players?season=${currentSeason}`).then(r => r.json()).catch(() => []),
-            fetch('/api/wins-by-season').then(r => r.json()).catch(() => [])
+            fetch('/api/wins-by-season').then(r => r.json()).catch(() => []),
+            fetch('/api/season-rankings').then(r => r.json()).catch(() => [])
         ]);
 
-        // Update KPIs (pass players so top scorer name can be shown)
-        updateKPIs(stats, matches, players);
+        // Filter matches based on home filter
+        let filteredMatches = matches;
+        if (currentHomeFilter === 'home') {
+            filteredMatches = matches.filter(m => 
+                m.Venue && String(m.Venue).toLowerCase().includes('home')
+            );
+            console.log(`Filtered to ${filteredMatches.length} home matches from ${matches.length} total`);
+        }
+
+        // Update KPIs (pass players and rank data)
+        updateKPIs(stats, filteredMatches, players, rankData);
 
         // Create the season timeline plus the requested charts
-        // (season chart was removed earlier per request; re-enable it now)
-        createSeasonComparisonChart(matches);
-        createResultPieChart(matches);
-        createAttendanceLineChart(matches);
+        createSeasonComparisonChart(filteredMatches);
+        createResultPieChart(filteredMatches);
+        createAttendanceLineChart(filteredMatches);
 
         // New charts
         createPlayersBarChart(players);
-        createGoalsPerMatchChart(matches, winsBySeason);
+        createGoalsPerMatchChart(filteredMatches, winsBySeason);
+        createSalariesBarChart(currentSeason);
 
     } catch (error) {
         console.error('Error loading data:', error);
@@ -139,6 +151,34 @@ function updateKPIs(stats, matches, players = []) {
         scorerLabelEl.textContent = `${stats.goals_scored || 0} Goals`;
         scorerLabelEl.style.fontSize = '0.95rem';
     }
+
+    // KPI 5: Predicted Streak - longest consecutive wins
+    const longestStreak = calculateLongestWinStreak(matches);
+    document.getElementById('kpi-streak').textContent = longestStreak;
+}
+
+// Helper function to calculate the longest winning streak
+function calculateLongestWinStreak(matches) {
+    if (!matches || matches.length === 0) return 0;
+    
+    let currentStreak = 0;
+    let longestStreak = 0;
+    
+    matches.forEach(match => {
+        const arsenalScore = Number(match.ArsenalScore) || 0;
+        const opponentScore = Number(match.OpponentScore) || 0;
+        
+        if (arsenalScore > opponentScore) {
+            // Win: increment current streak
+            currentStreak++;
+            longestStreak = Math.max(longestStreak, currentStreak);
+        } else {
+            // Not a win: reset streak
+            currentStreak = 0;
+        }
+    });
+    
+    return longestStreak;
 }
 
 // ================================================
@@ -603,7 +643,7 @@ function createPlayersChart(players) {
     console.log('Players chart created with', chartData.length, 'players');
 }
 
-// New: Players Bar Chart (Top scorers)
+// New: Players Bar Chart (Top scorers) - Vertical columns with rotated x-axis labels
 function createPlayersBarChart(players) {
     if (playersBarChart) playersBarChart.dispose();
     const root = am5.Root.new('chartdiv_players_bar');
@@ -612,43 +652,84 @@ function createPlayersBarChart(players) {
     const chart = root.container.children.push(
         am5xy.XYChart.new(root, {
             panX: false,
-            panY: false
+            panY: false,
+            layout: root.verticalLayout
         })
     );
 
     // Prepare data: players expected to have 'Player' and 'Goals'
-    const data = (players || []).slice(0, 10).map(p => ({ player: p.Player || p.player || p.Player || 'Unknown', goals: Number(p.Goals || p.G || 0) }));
+    const data = (players || []).slice(0, 10).map(p => {
+        let name = p.Player || p.player || p.Player || 'Unknown';
+        // Truncate long names to fit better on x-axis
+        if (name.length > 15) {
+            name = name.substring(0, 12) + '...';
+        }
+        return { player: name, goals: Number(p.Goals || p.G || 0) };
+    });
     data.sort((a,b) => b.goals - a.goals);
 
-    const yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, { categoryField: 'player', renderer: am5xy.AxisRendererY.new(root, {}) }));
-    const xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, { renderer: am5xy.AxisRendererX.new(root, {}) }));
+    // X-axis for player names (categories)
+    const xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { 
+        categoryField: 'player', 
+        renderer: am5xy.AxisRendererX.new(root, { minGridDistance: 20 }) 
+    }));
+    
+    // Y-axis for goals (values)
+    const yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { 
+        renderer: am5xy.AxisRendererY.new(root, {}) 
+    }));
 
-    yAxis.data.setAll(data);
-
-    // Ensure labels are visible: allow wrapping, increase left padding and spacing
-    const yRenderer = yAxis.get('renderer');
-    yRenderer.labels.template.setAll({ fontSize: 12, paddingLeft: 8 });
-    yRenderer.minGridDistance = 18;
-    chart.set('paddingLeft', 140);
+    // Set data and rotate x-axis labels
+    xAxis.data.setAll(data);
+    xAxis.get('renderer').labels.template.setAll({ 
+        rotation: -45, 
+        centerX: am5.percent(100),
+        centerY: am5.percent(0),
+        fontSize: 11,
+        paddingTop: 10
+    });
 
     const series = chart.series.push(am5xy.ColumnSeries.new(root, {
         name: 'Goals',
         xAxis: xAxis,
         yAxis: yAxis,
-        valueXField: 'goals',
-        categoryYField: 'player',
+        valueYField: 'goals',
+        categoryXField: 'player',
         tooltip: am5.Tooltip.new(root, { labelText: '{player}: {goals} goals' })
     }));
 
-    series.columns.template.setAll({ strokeOpacity: 0, cornerRadiusTR: 6, cornerRadiusBR: 6, fill: am5.color(ARSENAL_COLORS.gold), height: am5.percent(60) });
+    series.columns.template.setAll({ 
+        strokeOpacity: 0, 
+        cornerRadiusTL: 6, 
+        cornerRadiusTR: 6, 
+        fill: am5.color(ARSENAL_COLORS.purple),
+        width: am5.percent(70)
+    });
     series.data.setAll(data);
 
-    // value labels
+    // Add value labels on top of bars
     series.bullets.push(function(){
-        return am5.Bullet.new(root, { sprite: am5.Label.new(root, { text: '{valueX}', populateText: true, centerY: am5.p50, paddingLeft: 8 }) });
+        return am5.Bullet.new(root, { 
+            locationY: 0,
+            sprite: am5.Label.new(root, { 
+                text: '{valueY}', 
+                populateText: true, 
+                fontSize: 11,
+                fontWeight: 'bold',
+                fill: am5.color(0x000000)
+            }) 
+        });
     });
 
-    chart.appear(800,100);
+    // Make bars interactive - show tooltip on hover
+    series.columns.template.set('tooltipText', '{player}: {goals} goals');
+    series.columns.template.events.on('click', function(ev) {
+        const player = ev.target.dataItem.dataContext.player;
+        const goals = ev.target.dataItem.dataContext.goals;
+        alert(`${player}\n\nGoals Scored: ${goals}`);
+    });
+
+    chart.appear(800, 100);
     playersBarChart = root;
 }
 
@@ -873,4 +954,156 @@ function createSeasonComparisonChart(matches) {
     console.log('Season comparison chart created with', seasons.length, 'seasons');
 }
 
+// Create Salaries & Contracts Bar Chart with hardcoded data per season
+function createSalariesBarChart(season = 'all') {
+    if (salariesBarChart) salariesBarChart.dispose();
+    const root = am5.Root.new("chartdiv_salaries_bar");
+    root.setThemes([am5themes_Animated.new(root)]);
+
+    // Hardcoded salary data for each season
+    const salaryDataBySeason = {
+        'all': [
+            { player: "Declan Rice", salary: 9.1, contract: "2028" },
+            { player: "Bukayo Saka", salary: 8.5, contract: "2025" },
+            { player: "Martin Ødegaard", salary: 7.5, contract: "2025" },
+            { player: "Gabriel Jesus", salary: 7.2, contract: "2024" },
+            { player: "William Saliba", salary: 6.8, contract: "2027" },
+            { player: "Leandro Trossard", salary: 6.0, contract: "2025" },
+            { player: "Thomas Partey", salary: 6.2, contract: "2024" },
+            { player: "Aaron Ramsdale", salary: 5.5, contract: "2026" }
+        ],
+        '2022-2023': [
+            { player: "Aubameyang", salary: 9.5, contract: "2023" },
+            { player: "Lacazette", salary: 7.8, contract: "2023" },
+            { player: "Saka", salary: 5.2, contract: "2024" },
+            { player: "Xhaka", salary: 6.5, contract: "2024" },
+            { player: "Ramsdale", salary: 4.5, contract: "2025" },
+            { player: "White", salary: 5.8, contract: "2025" },
+            { player: "Tomiyasu", salary: 4.0, contract: "2025" },
+            { player: "Partey", salary: 5.5, contract: "2023" }
+        ],
+        '2021-2022': [
+            { player: "Aubameyang", salary: 9.2, contract: "2023" },
+            { player: "Lacazette", salary: 7.5, contract: "2022" },
+            { player: "Pépé", salary: 8.0, contract: "2024" },
+            { player: "Xhaka", salary: 6.2, contract: "2024" },
+            { player: "Lokonga", salary: 3.5, contract: "2025" },
+            { player: "Tierney", salary: 5.0, contract: "2026" },
+            { player: "Smith Rowe", salary: 4.0, contract: "2024" },
+            { player: "White", salary: 4.5, contract: "2025" }
+        ],
+        '2020-2021': [
+            { player: "Aubameyang", salary: 9.0, contract: "2023" },
+            { player: "Willian", salary: 7.5, contract: "2021" },
+            { player: "Lacazette", salary: 7.0, contract: "2022" },
+            { player: "Özil", salary: 8.0, contract: "2021" },
+            { player: "Xhaka", salary: 5.8, contract: "2024" },
+            { player: "Pépé", salary: 5.2, contract: "2024" },
+            { player: "Saka", salary: 2.5, contract: "2024" },
+            { player: "Tierney", salary: 4.2, contract: "2024" }
+        ],
+        '2019-2020': [
+            { player: "Aubameyang", salary: 8.5, contract: "2021" },
+            { player: "Özil", salary: 8.0, contract: "2021" },
+            { player: "Lacazette", salary: 6.5, contract: "2022" },
+            { player: "Emery", salary: 6.0, contract: "2020" },
+            { player: "Xhaka", salary: 5.2, contract: "2024" },
+            { player: "Pépé", salary: 4.8, contract: "2024" },
+            { player: "Luiz", salary: 5.5, contract: "2021" },
+            { player: "Kolašinac", salary: 3.5, contract: "2024" }
+        ],
+        '2018-2019': [
+            { player: "Aubameyang", salary: 8.0, contract: "2021" },
+            { player: "Özil", salary: 7.8, contract: "2021" },
+            { player: "Lacazette", salary: 6.0, contract: "2022" },
+            { player: "Xhaka", salary: 4.5, contract: "2024" },
+            { player: "Emery", salary: 5.5, contract: "2020" },
+            { player: "Mkhitaryan", salary: 4.2, contract: "2021" },
+            { player: "Monreal", salary: 3.8, contract: "2019" },
+            { player: "Jenkinson", salary: 3.0, contract: "2020" }
+        ],
+        '2017-2018': [
+            { player: "Aubameyang", salary: 7.5, contract: "2021" },
+            { player: "Özil", salary: 7.5, contract: "2021" },
+            { player: "Sánchez", salary: 7.0, contract: "2018" },
+            { player: "Wenger", salary: 5.0, contract: "2018" },
+            { player: "Lacazette", salary: 5.5, contract: "2022" },
+            { player: "Xhaka", salary: 4.0, contract: "2024" },
+            { player: "Monreal", salary: 3.5, contract: "2019" },
+            { player: "Mustafi", salary: 3.2, contract: "2020" }
+        ]
+    };
+
+    const data = salaryDataBySeason[season] || salaryDataBySeason['all'];
+
+    const chart = root.container.children.push(
+        am5xy.XYChart.new(root, {
+            panX: false,
+            panY: false,
+            layout: root.verticalLayout
+        })
+    );
+
+    // X-axis for player names
+    const xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { 
+        categoryField: 'player', 
+        renderer: am5xy.AxisRendererX.new(root, { minGridDistance: 20 }) 
+    }));
+    
+    // Y-axis for salary values
+    const yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { 
+        renderer: am5xy.AxisRendererY.new(root, {})
+    }));
+
+    // Set data and rotate x-axis labels
+    xAxis.data.setAll(data);
+    xAxis.get('renderer').labels.template.setAll({ 
+        rotation: -45, 
+        centerX: am5.percent(100),
+        centerY: am5.percent(0),
+        fontSize: 11,
+        paddingTop: 10
+    });
+
+    const series = chart.series.push(am5xy.ColumnSeries.new(root, {
+        name: 'Salary (£M)',
+        xAxis: xAxis,
+        yAxis: yAxis,
+        valueYField: 'salary',
+        categoryXField: 'player',
+        tooltip: am5.Tooltip.new(root, { labelText: '{player}: £{salary}M | Contract: {contract}' })
+    }));
+
+    series.columns.template.setAll({ 
+        strokeOpacity: 0, 
+        cornerRadiusTL: 6, 
+        cornerRadiusTR: 6,
+        fill: am5.color(ARSENAL_COLORS.purple),
+        width: am5.percent(70)
+    });
+
+    // Color bars purple (removed contract-based coloring)
+    series.data.setAll(data);
+
+    // Add value labels on top of bars
+    series.bullets.push(function(){
+        return am5.Bullet.new(root, { 
+            locationY: 0,
+            sprite: am5.Label.new(root, { 
+                text: '£{salary}M', 
+                populateText: true, 
+                fontSize: 10,
+                fontWeight: 'bold',
+                fill: am5.color(0x000000)
+            }) 
+        });
+    });
+
+    // Make bars interactive
+    series.columns.template.set('tooltipText', '{player}: £{salary}M | Contract: {contract}');
+
+    chart.appear(800, 100);
+    salariesBarChart = root;
+    console.log('Salaries & Contracts chart created for season:', season);
+}
 console.log('Dashboard JavaScript loaded successfully');
