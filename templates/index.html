@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arsenal FC Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- amCharts -->
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/percent.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <link rel="icon" href="{{ url_for('static', filename='imges/Arsenal_FC.png') }}" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='imges/Arsenal_FC.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='imges/Arsenal_FC.png') }}">
+
+<!-- meta theme (optional) -->
+<meta name="theme-color" content="#EF0107">
+    
+    <style>
+/* =========================================
+   ARSENAL FC DASHBOARD - ENHANCED DESIGN
+   ========================================= */
+
+/* =========================================
+   1. DESIGN SYSTEM & VARIABLES
+   ========================================= */
+:root {
+    /* Arsenal Brand Colors */
+    --arsenal-red: #EF0107;
+    --arsenal-red-dark: #c70106;
+    --arsenal-dark: #023474;
+    --arsenal-dark-light: #0a4a9e;
+    --arsenal-gold: #9C824A;
+    --arsenal-gold-light: #c9ab6f;
+    
+    /* Light Background System (removed darkmode) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #ffffff;
+    --card-bg: #ffffff;
+    --card-bg-hover: #f2f5f9;
+    
+    /* Text Colors (dark on light) */
+    --text-primary: #0b1220;
+    --text-secondary: #334155;
+    --text-muted: #6b7280;
+    
+    /* Accent & Effects */
+    --accent-glow: rgba(239, 1, 7, 0.08);
+    --shadow-sm: 0 1px 6px rgba(11, 17, 24, 0.06);
+    --shadow-md: 0 4px 14px rgba(11, 17, 24, 0.08);
+    --shadow-lg: 0 10px 30px rgba(11, 17, 24, 0.10);
+    
+    /* Spacing & Layout */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    
+    --border-radius: 12px;
+    --transition-speed: 0.3s;
+}
+
+/* =========================================
+   2. RESET & BASE STYLES
+   ========================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Animated Background Pattern */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(239, 1, 7, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(2, 52, 116, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* =========================================
+   3. HEADER DESIGN
+   ========================================= */
+.dashboard-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #ffffff;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.header-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.02) 10px,
+            rgba(255, 255, 255, 0.02) 20px
+        );
+    opacity: 0.12;
+    z-index: 0;
+}
+
+.header-content {
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-lg);
+    z-index: 2;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    animation: slideInLeft 0.6s ease-out;
+}
+
+/* Animated Logo */
+
+.logo-ring {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    background: transparent;
+    border-radius: 12px;
+    z-index: 2;
+}
+
+/* Neon glow behind the logo (not a circular ring) */
+.logo-ring::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% + 28px);
+    height: calc(100% + 28px);
+    background: linear-gradient(90deg, rgba(239,1,7,0.35), rgba(156,130,74,0.25));
+    filter: blur(18px);
+    border-radius: 14px;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity var(--transition-speed);
+}
+
+.logo-inner {
+    width: 50px;
+    height: 50px;
+    background: white;
+    color: var(--arsenal-red);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-md);
+}
+
+/* Logo Image Option (for real Arsenal logo) */
+.logo-image {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 0 18px rgba(239,1,7,0.6), 0 0 36px rgba(156,130,74,0.18);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.logo-ring:hover .logo-image {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 0 28px rgba(239,1,7,0.9), 0 0 48px rgba(156,130,74,0.25);
+}
+
+.header-text h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+    margin: 0;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header-text p {
+    font-size: 0.95rem;
+    font-weight: 300;
+    margin: 0;
+    opacity: 0.9;
+    letter-spacing: 0.5px;
+}
+
+/* Controls Area */
+.controls-area {
+    animation: slideInRight 0.6s ease-out;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.season-dropdown {
+    padding: 12px 20px;
+    font-family: 'Archivo', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--arsenal-dark);
+    background: white;
+    border: 2px solid var(--arsenal-gold);
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: all var(--transition-speed) ease;
+    box-shadow: var(--shadow-sm);
+    min-width: 240px;
+}
+
+.season-dropdown:hover {
+    background: linear-gradient(135deg, #fff 0%, #fffbf0 100%);
+    border-color: var(--arsenal-gold-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.season-dropdown:focus {
+    border-color: var(--arsenal-red);
+}
+
+/* =========================================
+   4. MAIN DASHBOARD CONTAINER
+   ========================================= */
+.dashboard-container {
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* =========================================
+   5. KPI CARDS
+   ========================================= */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.kpi-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all var(--transition-speed) ease;
+    animation: fadeInUp 0.6s ease-out;
+    animation-delay: var(--delay, 0s);
+    animation-fill-mode: both;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(239,1,7,0.12);
+    background: var(--card-bg-hover);
+}
+
+.kpi-icon {
+    font-size: 2.2rem;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(239,1,7,0.06), rgba(156,130,74,0.04));
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(11,17,24,0.06);
+    color: var(--arsenal-red);
+}
+
+.kpi-content {
+    flex: 1;
+}
+
+.kpi-content h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.kpi-value-small {
+    font-size: 1.5rem;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* =========================================
+   6. CHART SECTIONS
+   ========================================= */
+.chart-section {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: fadeInUp 0.6s ease-out;
+    animation-delay: var(--delay, 0s);
+    animation-fill-mode: both;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.chart-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(11,17,24,0.04);
+    transition: all var(--transition-speed) ease;
+    animation: fadeInUp 0.6s ease-out;
+    animation-delay: var(--delay, 0s);
+    animation-fill-mode: both;
+}
+
+.chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(239, 1, 7, 0.15);
+}
+
+.card-header {
+    background: #ffffff;
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid rgba(239,1,7,0.12);
+}
+
+.card-header-content h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.chart-badge {
+    background: var(--arsenal-red);
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.chart-wrapper {
+    padding: var(--spacing-md);
+}
+
+.chart-box {
+    width: 100%;
+    height: 400px;
+    position: relative;
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Chart Placeholders */
+.chart-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+}
+
+.placeholder-pulse {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--arsenal-red);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-md);
+}
+
+.placeholder-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Season Comparison Section */
+.season-comparison {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: fadeInUp 0.6s ease-out;
+    animation-delay: 0.8s;
+    animation-fill-mode: both;
+}
+
+.comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid rgba(239, 1, 7, 0.2);
+}
+
+.comparison-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+}
+
+.comparison-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+#chartdiv_seasons {
+    width: 100%;
+    height: 500px;
+}
+
+/* =========================================
+   7. LOADING STATES
+   ========================================= */
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* =========================================
+   8. FOOTER
+   ========================================= */
+.dashboard-footer {
+    text-align: center;
+    padding: var(--spacing-lg);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: var(--spacing-xl);
+}
+
+/* =========================================
+   9. ANIMATIONS
+   ========================================= */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =========================================
+   10. RESPONSIVE DESIGN
+   ========================================= */
+@media (max-width: 1200px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+        padding: var(--spacing-md);
+    }
+    
+    .logo-container {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .header-text h1 {
+        font-size: 2rem;
+    }
+    
+    .controls-area {
+        width: 100%;
+    }
+    
+    .season-dropdown {
+        width: 100%;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .kpi-value {
+        font-size: 2rem;
+    }
+    
+    .chart-box {
+        height: 300px;
+    }
+    
+    .dashboard-container {
+        padding: var(--spacing-md);
+    }
+
+    #chartdiv_seasons {
+        height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-text h1 {
+        font-size: 1.5rem;
+    }
+    .logo-ring {
+        padding: 4px;
+    }
+
+    .logo-ring::before {
+        width: calc(100% + 20px);
+        height: calc(100% + 20px);
+        filter: blur(14px);
+        border-radius: 12px;
+    }
+    
+    .logo-inner {
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+    }
+    
+    .card-header-content h2 {
+        font-size: 1.2rem;
+    }
+
+    #chartdiv_seasons {
+        height: 350px;
+    }
+}
+
+/* =========================================
+   11. PRINT STYLES
+   ========================================= */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .dashboard-header,
+    .dashboard-footer {
+        display: none;
+    }
+    
+    .chart-section,
+    .chart-card,
+    .kpi-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
+    </style>
+</head>
+<body>
+
+    <header class="dashboard-header">
+        <div class="header-background"></div>
+        <div class="header-content">
+            <div class="logo-ring">
+    <!-- Arsenal Logo with fallback to text -->
+    <img src="{{ url_for('static', filename='imges/Arsenal_FC.png') }}" 
+         alt="Arsenal Logo" 
+         class="logo-image"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-inner" style="display: none;">AFC</div>
+    </div>
+            <div class="controls-area">
+                <div class="control-group">
+                    <label for="seasonSelect">Season View</label>
+                    <select id="seasonSelect" class="season-dropdown">
+                        <option value="all">★ All Seasons (2017-2023)</option>
+                        <option value="2022-2023">2022 / 2023</option>
+                        <option value="2021-2022">2021 / 2022</option>
+                        <option value="2020-2021">2020 / 2021</option>
+                        <option value="2019-2020">2019 / 2020</option>
+                        <option value="2018-2019">2018 / 2019</option>
+                        <option value="2017-2018">2017 / 2018</option>
+                    </select>
+                </div>
+                <!-- (Prediction UI removed) -->
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        
+        <!-- KPI Cards Section -->
+        <section class="kpi-grid">
+            <div class="kpi-card" style="--delay: 0.1s">
+                <div class="kpi-icon">📊</div>
+                <div class="kpi-content">
+                    <h3>Win Rate</h3>
+                    <div class="kpi-value" id="kpi-winrate">--</div>
+                    <div class="kpi-label">Match Win %</div>
+                </div>
+            </div>
+            <div class="kpi-card" style="--delay: 0.2s">
+                <div class="kpi-icon">🏆</div>
+                <div class="kpi-content">
+                    <h3>Total Points</h3>
+                    <div class="kpi-value" id="kpi-points">--</div>
+                    <div class="kpi-label">Season Total</div>
+                </div>
+            </div>
+            <div class="kpi-card" style="--delay: 0.3s">
+                <div class="kpi-icon">⚽</div>
+                <div class="kpi-content">
+                    <h3>Goal Difference</h3>
+                    <div class="kpi-value" id="kpi-goaldiff">--</div>
+                    <div class="kpi-label">Goals +/-</div>
+                </div>
+            </div>
+            <div class="kpi-card" style="--delay: 0.4s">
+                <div class="kpi-icon">👤</div>
+                <div class="kpi-content">
+                    <h3>Top Scorer</h3>
+                    <div class="kpi-value kpi-value-small" id="kpi-scorer">--</div>
+                    <div class="kpi-label" id="kpi-scorer-label">Leading Player</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart Grid: simplified to single pie + attendance line -->
+        <section class="chart-section">
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-header-content">
+                            <h2>Result Share</h2>
+                            <div class="card-subtitle">Win / Draw / Loss breakdown</div>
+                        </div>
+                        <div class="chart-badge">Share</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="chartdiv_result_pie" class="chart-box"></div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-header-content">
+                            <h2>Attendance Over Matches</h2>
+                            <div class="card-subtitle">Attendance trend by tour/date</div>
+                        </div>
+                        <div class="chart-badge">Trend</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="chartdiv_attendance_line" class="chart-box"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-header-content">
+                            <h2>Top Players</h2>
+                            <div class="card-subtitle">Best scorers (top 10) — filters by season</div>
+                        </div>
+                        <div class="chart-badge">Players</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="chartdiv_players_bar" class="chart-box"></div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="card-header">
+                        <div class="card-header-content">
+                            <h2>Goals per Match</h2>
+                            <div class="card-subtitle">Average goals per match by season, or per-match when a season is selected</div>
+                        </div>
+                        <div class="chart-badge">GPM</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="chartdiv_goals_per_match" class="chart-box"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Season Comparison Section (New from Notebook) -->
+        <section class="season-comparison">
+            <div class="comparison-header">
+                <div>
+                    <h2>Season Win/Loss Timeline</h2>
+                    <div class="comparison-subtitle">Match results across all tours (Win = Green, Draw = Orange, Loss = Red)</div>
+                </div>
+            </div>
+            <div id="chartdiv_seasons" class="chart-box"></div>
+        </section>
+
+    </main>
+
+    <footer class="dashboard-footer">
+        <p>Made By Yusuf & Rawan</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}?v=2"></script>
+</body>
+</html>
