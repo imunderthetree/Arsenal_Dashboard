@@ -1,12 +1,14 @@
 from flask import Flask, render_template, jsonify, request
 import sqlite3
 import json
+import os
 
 app = Flask(__name__)
 
 def get_db_connection():
     """Create database connection"""
-    conn = sqlite3.connect('arsenal.db')
+    db_path = os.getenv('DATABASE_PATH', 'arsenal.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -443,4 +445,4 @@ if __name__ == '__main__':
         print("\nPlease run the database setup script first!")
         print("=" * 60 + "\n")
     
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
