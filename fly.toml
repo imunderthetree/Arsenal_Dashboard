@@ -1,6 +1,7 @@
-# fly.toml app configuration file generated for Arsenal Dashboard
+# fly.toml app configuration file for Arsenal Dashboard
+# IMPORTANT: Replace "your-app-name" with your actual Fly.io app name before deploying
 
-app = "your-app-name"
+app = "your-app-name"  # TODO: Change this to your Fly.io app name
 primary_region = "iad"
 
 [build]
